@@ -9,7 +9,7 @@ clients = {}
 
 # Initialize deck
 deck = Deck()
-game = Game()
+game = Game(deck)
 
 
 def send_hand(client_socket, hand):
@@ -54,6 +54,7 @@ def start_game():
     if len(clients) < 2:
         broadcast("At least two players are needed to start the game.",'text')
         return  # Exit the function if not enough players
+    print(f"Number of cards in the deck before shuffling and dealing: {len(deck.cards)}")  # Debug print
 
     deck.shuffle()
     game.players = list(clients.keys())  # Set player order to the order of connections    
@@ -66,12 +67,18 @@ def start_game():
         send_hand(client_socket, hand)  # Use the send_hand method to send the pickled hand 
 
         print(f"Dealt hand to {username}.")
+    print(f"Number of cards remaining in the deck after dealing: {len(deck.cards)}")  # Debug print
 
     announce_turn()
     
     # This is where we're adding the print statement for debugging
     print(f"Number of cards remaining in the deck after dealing: {len(deck.cards)}")
-    
+    print(f"ID of global deck object: {id(deck)}")  # Debug print
+    print(f"ID of game's deck object: {id(game.deck)}")  # Debug print
+
+    if id(deck) != id(game.deck):
+        print("Different deck instances are being used!")  # Debug notice
+        return  # Exit the function
 def announce_turn():
     current_player = game.get_current_player()
 

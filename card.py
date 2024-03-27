@@ -15,8 +15,8 @@ class Game:
     def set_top_card(self, card):
         self.top_card = card
         
-    def __init__(self):
-        self.deck = Deck()
+    def __init__(self, deck):
+        self.deck = deck  # Use the deck instance passed in as an argument
         self.players = []  # Will keep track of player order
         self.top_card = None
         self.direction = 1  # 1 for clockwise, -1 for counter-clockwise
@@ -105,6 +105,7 @@ class Deck:
                 if self.cards:  # Check that there are still cards to deal
                     card = self.cards.pop()
                     player_hands[player_name].append(card)
+                    print(f"Dealed {card} to {player_name}")
                 else:
                     print("The deck is out of cards!")
                     break
