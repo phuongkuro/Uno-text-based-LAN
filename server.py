@@ -11,10 +11,6 @@ clients = {}
 deck = Deck()
 game = Game()
 
-def handle_play_card(player_name, card):
-    if game.play_card(player_name, card):
-        # If the card is played, broadcast the new top card to all players
-        broadcast(f"Top card is now {game.top_card}",'text')
 
 def send_hand(client_socket, hand):
     pickled_hand = pickle.dumps(hand)
@@ -137,22 +133,24 @@ def broadcast(message, message_type='text', exclude_user=None):
 
 def handle_client(client_socket, client_address):
     global clients
-    print(f"Connection attempt from {client_address}")  # For debugging
-    username = None  # Initialize username to None
+    print(f"Connection attempt from {client_address}")
+    username = None
 
     try:
-        # First message is always the username
-        username = client_socket.recv(1024).decode('utf-8').strip()
-        if not username:
-            raise ValueError("Invalid username; username cannot be blank.")
-        clients[username] = client_socket
-        print(f"Connection established with {username} from {client_address}")
+        while True:
+            username = client_socket.recv(1024).decode('utf-8').strip()
+            if username in clients:
+                send_to_client(client_socket, "Username has been taken, please choose another", 'text')
+                continue  # Wait for the user to enter another username
+            if not username:
+                send_to_client(client_socket, "Invalid username; username cannot be blank.", 'text')
+                continue  # Wait for the user to enter another username
 
-        # Inform all clients that a new player has joined
-        broadcast(f"{username} has joined the game.",'text')
-
-        # Welcome message to the newly connected client
-        send_to_client(client_socket, "Welcome to the game! When all players have joined, the host will start the game.", 'text')
+            clients[username] = client_socket
+            print(f"Connection established with {username} from {client_address}")
+            broadcast(f"{username} has joined the game.", 'text')
+            send_to_client(client_socket, "Welcome to the game! When all players have joined, the host will start the game.", 'text')
+            break  # Exit the loop as a valid username has been set
 
         # Main loop to receive messages from this client
         while True:
