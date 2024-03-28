@@ -4,7 +4,7 @@ import pickle
 import time
 
 # Server's IP address
-SERVER_IP = '192.168.1.34'  # Replace with your server's IP address
+SERVER_IP = '172.16.1.88'  # Replace with your server's IP address
 SERVER_PORT = 65432
 
 def get_valid_username(prompt="Enter your username: "):
@@ -18,7 +18,6 @@ def get_valid_username(prompt="Enter your username: "):
 my_turn = False  # Global flag to indicate if it's my turn
 
 def receive_messages(client_socket, username):
-    """Handles incoming messages from the server."""
     global my_turn
 
     while True:
@@ -28,6 +27,7 @@ def receive_messages(client_socket, username):
             if not header:
                 print("Server closed the connection unexpectedly.")
                 break
+
             message_length = int.from_bytes(header, byteorder='big')
             if message_length:
                 # Now, receive the designated length of bytes
@@ -36,44 +36,36 @@ def receive_messages(client_socket, username):
                     print("Server closed the connection.")
                     break
 
-                # Logic to handle different message types
+                # Logic to handle different message types.
+                # If it's a pickled hand of cards:
                 if message.startswith(b'PICKLE:'):
-                    hand = pickle.loads(message[7:])  # Remove the PICKLE: prefix
+                    hand = pickle.loads(message[7:])
                     print("Received your hand of cards:", hand)
+
+                # If it's a text-based message (including turn notifications):
                 elif message.startswith(b'TEXT:'):
-                    text_message = message[5:].decode('utf-8')  # Remove the TEXT: prefix
+                    text_message = message[5:].decode('utf-8')
                     print(text_message)
+                    # When it's this client's turn, TEXT: message will be expected to contain "It's <username>'s turn."
                     if f"It's {username}'s turn." in text_message:
                         my_turn = True
-                    else:
-                        my_turn = False
+
                 else:
-                    print("Unknown message type.")
+                    print("Unknown message type:", message)
+
         except Exception as e:
             print("An error occurred:", e)
             break
 
+
 def send_messages(client_socket):
     global my_turn
     while True:
-        # Continually check if it's our turn to play
         if my_turn:
             card = input("Enter the card you want to play (e.g., 'Red 4'): ")
             message = f'PLAY {card}'
             client_socket.sendall(message.encode('utf-8'))
-            
-            # Now, wait for the server's response after attempting to play
-            response = client_socket.recv(1024).decode('utf-8')
-
-            if response.startswith('TEXT:'):
-                text_response = response[5:]
-                print(text_response)
-                if "played:" in text_response:
-                    # The card was successfully played, so now it's not our turn
-                    my_turn = False
-                else:
-                    # The play was invalid, so let the player know and try again
-                    my_turn = True
+            my_turn = False  # Assume it's no longer our turn until server tells us again
         else:
             # It's not our turn, let's not burn the CPU
             time.sleep(0.1)
