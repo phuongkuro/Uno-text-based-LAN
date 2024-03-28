@@ -83,8 +83,11 @@ def announce_turn():
     current_player = game.get_current_player()
 
     # Send text messages to each client announcing the current player's turn
-    for client in clients.values():
-        send_to_client(client, f"It's {current_player}'s turn.", 'text')
+    for client_name, client_socket in clients.items():
+        if client_name == current_player:
+            send_to_client(client_socket, f"It's your turn to play.", 'text')
+        else:
+            send_to_client(client_socket, f"It's {current_player}'s turn.", 'text')
 
 def handle_play_card(player_name, card):
     if game.top_card is None or game.can_play_card(player_name, card):
