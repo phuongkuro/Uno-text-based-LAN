@@ -102,6 +102,7 @@ def handle_play_card(player_name, card):
         # The card played is not valid, send a message to the player
         send_to_client(clients[player_name], "Invalid card played. Try again.", 'text')
         # Do not call announce_turn because it's still the current player's turn
+        send_to_client(clients[player_name], f"It's your turn to play.", 'text')
 
 
 # Function to broadcast messages to all connected clients

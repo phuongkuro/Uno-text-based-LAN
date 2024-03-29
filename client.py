@@ -40,7 +40,7 @@ def receive_messages(client_socket, username):
                     text_message = message[5:].decode('utf-8')
                     print(text_message)
 
-                    if f"It's your turn to play." in text_message:
+                    if text_message.endswith("your turn to play."):
                         my_turn = True
                     else:
                         my_turn = False  # It might be a good idea to keep this false here
