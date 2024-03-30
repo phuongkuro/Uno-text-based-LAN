@@ -1,1 +1,1 @@
-unfinished project
+About me: I'm a non-dev person, doesn't know a single line of code. What I'm trying to do is creating a text-based LAN game UNO with AI. This is a challenge but it's also a chance so I can learn more about how the coding works

@@ -4,7 +4,7 @@ import pickle
 import time
 
 # Server's IP address
-SERVER_IP = '192.168.1.34'  # Replace with your server's IP address
+SERVER_IP = '172.16.1.88'  # Replace with your server's IP address
 SERVER_PORT = 65432
 
 def get_valid_username(prompt="Enter your username: "):
@@ -50,6 +50,7 @@ def receive_messages(client_socket, username):
         except Exception as e:
             print("An error occurred:", e)
             break
+
 
 
 def send_messages(client_socket):
