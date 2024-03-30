@@ -83,23 +83,46 @@ def announce_turn():
     current_player = game.get_current_player()
 
     # Send text messages to each client announcing the current player's turn
-    for client in clients.values():
-        send_to_client(client, f"It's {current_player}'s turn.", 'text')
+    for client_name, client_socket in clients.items():
+        if client_name == current_player:
+            send_to_client(client_socket, f"It's your turn to play.", 'text')
+        else:
+            send_to_client(client_socket, f"It's {current_player}'s turn.", 'text')
+
 
 def handle_play_card(player_name, card):
-    if game.top_card is None or game.can_play_card(player_name, card):
-        # If it's the first card played or the play is valid, set/update top card
-        game.set_top_card(card)
-        broadcast(f"Player {player_name} played: {card}", 'text')
+    # This function is structured well; it first checks if it is the very first play of the game
+    if game.top_card is None:
+        if card in game.player_hands[player_name]:
+            game.set_top_card(card)
+            broadcast(f"Player {player_name} played: {card}", 'text')
+            game.player_hands[player_name].remove(card)
+            send_hand(clients[player_name], game.player_hands[player_name])
+            game.advance_to_next_player()
+            announce_turn()
+        else:
+            send_to_client(clients[player_name], "Invalid card. That card is not in your hand. Try again.", 'text')
+            # Ensure we keep it the current player's turn
+            send_to_client(clients[player_name], f"It's your turn to play.", 'text')
 
-        # Check the next player's turn
-        game.advance_to_next_player()
-        announce_turn()
+    elif game.can_play_card(player_name, card):
+        if card in game.player_hands[player_name]:
+            game.set_top_card(card)
+            broadcast(f"Player {player_name} played: {card}", 'text')
+            game.player_hands[player_name].remove(card)
+            send_hand(clients[player_name], game.player_hands[player_name])
+            game.advance_to_next_player()
+            announce_turn()
+        else:
+            send_to_client(clients[player_name], "Invalid card. That card is not in your hand. Try again.", 'text')
+            # Ensure we keep it the current player's turn
+            send_to_client(clients[player_name], f"It's your turn to play.", 'text')
+
     else:
         # The card played is not valid, send a message to the player
         send_to_client(clients[player_name], "Invalid card played. Try again.", 'text')
-        # Do not call announce_turn because it's still the current player's turn
-
+        # Ensure we keep it the current player's turn
+        send_to_client(clients[player_name], f"It's your turn to play.", 'text')
 
 # Function to broadcast messages to all connected clients
 def broadcast(message, message_type='text', exclude_user=None):

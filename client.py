@@ -18,65 +18,64 @@ def get_valid_username(prompt="Enter your username: "):
 my_turn = False  # Global flag to indicate if it's my turn
 
 def receive_messages(client_socket, username):
-    """Handles incoming messages from the server."""
     global my_turn
 
     while True:
         try:
-            # First, receive the length of the pickled data
             header = client_socket.recv(4)
             if not header:
                 print("Server closed the connection unexpectedly.")
                 break
             message_length = int.from_bytes(header, byteorder='big')
+            
             if message_length:
-                # Now, receive the designated length of bytes
                 message = client_socket.recv(message_length)
                 if not message:
                     print("Server closed the connection.")
                     break
 
-                # Logic to handle different message types
                 if message.startswith(b'PICKLE:'):
-                    hand = pickle.loads(message[7:])  # Remove the PICKLE: prefix
+                    hand = pickle.loads(message[7:])
                     print("Received your hand of cards:", hand)
                 elif message.startswith(b'TEXT:'):
-                    text_message = message[5:].decode('utf-8')  # Remove the TEXT: prefix
+                    text_message = message[5:].decode('utf-8')
                     print(text_message)
-                    if f"It's {username}'s turn." in text_message:
+
+                    # Check if it's the user's turn or if they need to try again
+                    if "your turn to play." in text_message or "That card is not in your hand." in text_message:
                         my_turn = True
                     else:
                         my_turn = False
-                else:
-                    print("Unknown message type.")
+
         except Exception as e:
             print("An error occurred:", e)
             break
 
+
 def send_messages(client_socket):
     global my_turn
+    
     while True:
-        # Continually check if it's our turn to play
-        if my_turn:
-            card = input("Enter the card you want to play (e.g., 'Red 4'): ")
-            message = f'PLAY {card}'
-            client_socket.sendall(message.encode('utf-8'))
-            
-            # Now, wait for the server's response after attempting to play
-            response = client_socket.recv(1024).decode('utf-8')
-
-            if response.startswith('TEXT:'):
-                text_response = response[5:]
-                print(text_response)
-                if "played:" in text_response:
-                    # The card was successfully played, so now it's not our turn
-                    my_turn = False
+        try:
+            if my_turn:
+                card_to_play = input("Enter the card you want to play (e.g., 'Red 4'), or 'pass' to draw a card: ").strip()
+                
+                if card_to_play.lower() == 'pass':
+                    # If the player passes, handle drawing a card (this part is up to how you manage drawing in your game)
+                    message = 'DRAW'
+                elif card_to_play:  
+                    # Only proceed if the player entered something other than just hitting enter
+                    message = f'PLAY {card_to_play}'
                 else:
-                    # The play was invalid, so let the player know and try again
-                    my_turn = True
-        else:
-            # It's not our turn, let's not burn the CPU
-            time.sleep(0.1)
+                    # If nothing was entered, prompt again
+                    print("No card entered. Try again.")
+                    continue  # Skip sending any message to the server and allow to re-enter
+                
+                client_socket.sendall(message.encode('utf-8'))
+                my_turn = False  # Reset the turn flag until confirmed by another message
+        except Exception as e:
+            print(f"Failed to send message: {e}")
+        time.sleep(0.1)  # Prevents the loop from executing too rapidly
 
 
 

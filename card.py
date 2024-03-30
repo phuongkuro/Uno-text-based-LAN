@@ -4,12 +4,12 @@ class Game:
     def start_game(self):
         # Shuffle and deal the cards here, then set starting_top_card to None
         self.deck.shuffle()
-        player_hands = self.deck.deal(self.players)
+        self.player_hands = self.deck.deal(self.players)
 
         # Let the game begin without a starting top card
         self.top_card = None
 
-        return player_hands
+        return self.player_hands
     
     # Modify or add a method to set the top card when the first player plays
     def set_top_card(self, card):
@@ -17,10 +17,13 @@ class Game:
         
     def __init__(self, deck):
         self.deck = deck  # Use the deck instance passed in as an argument
+        self.discard_pile = []  # Initialize an empty discard pile        
         self.players = []  # Will keep track of player order
         self.top_card = None
         self.direction = 1  # 1 for clockwise, -1 for counter-clockwise
         self.current_index = 0
+        self.player_hands = {}  # Initialize the player_hands dictionary here
+
 
     def add_player(self, player_name):
         self.players.append(player_name)
@@ -56,20 +59,29 @@ class Game:
         self.advance_to_next_player()
 
     def play_card(self, player_name, card):
-        # Additional logic here to check for move validity
-        self.top_card = card
-        if card.value == 'Reverse':
-            self.reverse_direction()
-
-        # Broadcast the top card and the current player's turn
-        # Note: The server handles broadcasting, not the Game class
-        return True
+        player_hand = self.player_hands[player_name]  # Use self.player_hands here
+        if card in player_hand and self.can_play_card(player_name, card):
+            player_hand.remove(card)
+            self.discard_pile.append(card)
+            self.top_card = card
+            if card.value == 'Reverse':
+                self.reverse_direction()
+            elif card.value == 'Skip':
+                self.advance_to_next_player()
+            
+            # Return True if the card play was successful   
+            return True
+        # Return False if the card could not be played
+        return False
 
 class Card:
     def __init__(self, color, value):
         self.color = color
         self.value = value
-
+    def __eq__(self, other):
+        if isinstance(other, Card):
+            return self.color == other.color and self.value == other.value
+        return False
     def __repr__(self):
         return f"{self.color} {self.value}"
 
