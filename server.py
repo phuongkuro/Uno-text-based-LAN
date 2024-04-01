@@ -124,7 +124,7 @@ def handle_play_card(player_name, card):
     else:
         # It's not the first play, and the card isn't valid to be played according to the game rules
         send_to_client(clients[player_name], "Invalid card played. Try again.", 'text')
-        
+
 # Function to broadcast messages to all connected clients
 def broadcast(message, message_type='text', exclude_user=None):
     global clients
@@ -211,7 +211,6 @@ def handle_client(client_socket, client_address):
                 else:
                     # This is where you tell the client that the play is invalid
                     send_to_client(client_socket, "Invalid card format. Try again.", 'text')
-                    send_to_client(client_socket, f"It's your turn to play.", 'text')
             else:
                 broadcast(f"{username}: {message}",'text', username)
     except ConnectionResetError:
