@@ -59,19 +59,30 @@ class Game:
         self.advance_to_next_player()
 
     def play_card(self, player_name, card):
-        player_hand = self.player_hands[player_name]  # Use self.player_hands here
-        if card in player_hand and self.can_play_card(player_name, card):
-            player_hand.remove(card)
-            self.discard_pile.append(card)
-            self.top_card = card
-            if card.value == 'Reverse':
-                self.reverse_direction()
-            elif card.value == 'Skip':
-                self.advance_to_next_player()
-            
-            # Return True if the card play was successful   
-            return True
-        # Return False if the card could not be played
+        if self.get_current_player() != player_name:
+            # It's not the player's turn, so they can't play a card
+            return False
+
+        # If it's the first turn of the game (indicated by `self.top_card` being None)
+        # set the first played card as the top card if it's in the player's hand
+        if self.top_card is None or (
+           card.color == self.top_card.color or
+           card.value == self.top_card.value or
+           card.color == 'Black'):
+            # The play is valid
+            player_hand = self.player_hands[player_name]
+            if card in player_hand:
+                player_hand.remove(card)
+                self.top_card = card
+                self.discard_pile.append(card)
+                if card.value == 'Reverse':
+                    self.reverse_direction()
+                elif card.value == 'Skip':
+                    self.advance_to_next_player()
+                # Successfully played a card
+                return True
+        
+        # The play was not valid 
         return False
 
 class Card:

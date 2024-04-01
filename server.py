@@ -89,41 +89,42 @@ def announce_turn():
         else:
             send_to_client(client_socket, f"It's {current_player}'s turn.", 'text')
 
-
 def handle_play_card(player_name, card):
-    # This function is structured well; it first checks if it is the very first play of the game
-    if game.top_card is None:
+    if game.get_current_player() != player_name:
+        # It's not the player's turn
+        send_to_client(clients[player_name], "It's not your turn.", 'text')
+    elif game.top_card is None:
+        # If it's the first turn of the game, any card can be played if it's in the player's hand
         if card in game.player_hands[player_name]:
-            game.set_top_card(card)
+            game.play_card(player_name, card)  # Play the card
             broadcast(f"Player {player_name} played: {card}", 'text')
-            game.player_hands[player_name].remove(card)
+
+            # Send the updated hand back to the player after playing
             send_hand(clients[player_name], game.player_hands[player_name])
+
             game.advance_to_next_player()
             announce_turn()
         else:
-            send_to_client(clients[player_name], "Invalid card. That card is not in your hand. Try again.", 'text')
-            # Ensure we keep it the current player's turn
-            send_to_client(clients[player_name], f"It's your turn to play.", 'text')
-
+            # The card is not in the player's hand, don't advance the turn
+            send_to_client(clients[player_name], "You don't have that card. Try again.", 'text')
     elif game.can_play_card(player_name, card):
+        # If the played card is valid and it's in the player's hand
         if card in game.player_hands[player_name]:
-            game.set_top_card(card)
+            game.play_card(player_name, card)  # Play the card
             broadcast(f"Player {player_name} played: {card}", 'text')
-            game.player_hands[player_name].remove(card)
+
+            # Send the updated hand back to the player after playing
             send_hand(clients[player_name], game.player_hands[player_name])
+
             game.advance_to_next_player()
             announce_turn()
         else:
-            send_to_client(clients[player_name], "Invalid card. That card is not in your hand. Try again.", 'text')
-            # Ensure we keep it the current player's turn
-            send_to_client(clients[player_name], f"It's your turn to play.", 'text')
-
+            # It's a valid play in terms of game rules, but the card isn't in the player's hand
+            send_to_client(clients[player_name], "Invalid card played. Try again.", 'text')
     else:
-        # The card played is not valid, send a message to the player
+        # It's not the first play, and the card isn't valid to be played according to the game rules
         send_to_client(clients[player_name], "Invalid card played. Try again.", 'text')
-        # Ensure we keep it the current player's turn
-        send_to_client(clients[player_name], f"It's your turn to play.", 'text')
-
+        
 # Function to broadcast messages to all connected clients
 def broadcast(message, message_type='text', exclude_user=None):
     global clients
@@ -159,6 +160,16 @@ def broadcast(message, message_type='text', exclude_user=None):
             # Inform other clients that this user has left
             broadcast(f"{username} has left the game.", 'text')  # Make sure to specify the message type here
 
+def is_valid_play(message):
+    # Assuming a valid play message is "PLAY <Color> <Value>"
+    parts = message.split()
+    if len(parts) != 3:
+        return False
+    color, value = parts[1], parts[2]
+    # Define the valid colors and values based on your game rules
+    valid_colors = ['Red', 'Yellow', 'Green', 'Blue', 'Black']
+    valid_values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', 'Draw Two', 'Wild', 'Wild Draw Four']
+    return color in valid_colors and value in valid_values
 
 
 def handle_client(client_socket, client_address):
@@ -191,14 +202,16 @@ def handle_client(client_socket, client_address):
 
             message = received_data.decode('utf-8').strip()
             if message.startswith('PLAY'): 
-                card_info = message.split(maxsplit=2)  # Example: "PLAY Red 4"
-                if len(card_info) == 3 and game.get_current_player() == username:
-                    # The server already knows it's their turn
+                if is_valid_play(message):
+                    # Here you can process the card play because it's a valid format
+                    card_info = message.split()
                     card_color, card_value = card_info[1], card_info[2]
                     card_to_play = Card(card_color, card_value)
-                    handle_play_card(username, card_to_play)  # Adjust handle_play_card implementation accordingly
+                    handle_play_card(username, card_to_play)
                 else:
-                    send_to_client(client_socket, "It's not your turn.", 'text')
+                    # This is where you tell the client that the play is invalid
+                    send_to_client(client_socket, "Invalid card format. Try again.", 'text')
+                    send_to_client(client_socket, f"It's your turn to play.", 'text')
             else:
                 broadcast(f"{username}: {message}",'text', username)
     except ConnectionResetError:

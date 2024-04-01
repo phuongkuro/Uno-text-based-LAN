@@ -42,7 +42,7 @@ def receive_messages(client_socket, username):
                     print(text_message)
 
                     # Check if it's the user's turn or if they need to try again
-                    if "your turn to play." in text_message or "That card is not in your hand." in text_message:
+                    if "your turn to play." in text_message or "Try again" in text_message:
                         my_turn = True
                     else:
                         my_turn = False
