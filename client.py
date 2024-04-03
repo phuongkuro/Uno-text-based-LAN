@@ -57,26 +57,26 @@ def send_messages(client_socket):
     global my_turn
     
     while True:
-        try:
-            if my_turn:
-                card_to_play = input("Enter the card you want to play (e.g., 'Red 4'), or 'pass' to draw a card: ").strip()
-                
+        if my_turn:
+            try:
+                card_to_play = input("Enter the card you want to play (e.g., 'Red 4'), or 'pass' to draw a card: ").strip()                
                 if card_to_play.lower() == 'pass':
-                    # If the player passes, handle drawing a card (this part is up to how you manage drawing in your game)
-                    message = 'DRAW'
+                    # If the player chooses to pass, the 'DRAW' message is sent to the server
+                    client_socket.sendall('DRAW'.encode('utf-8'))
                 elif card_to_play:  
-                    # Only proceed if the player entered something other than just hitting enter
+                    # If the player entered something other than 'pass', the 'PLAY' message is sent
                     message = f'PLAY {card_to_play}'
+                    client_socket.sendall(message.encode('utf-8'))
                 else:
-                    # If nothing was entered, prompt again
+                    # If the player didn't enter anything, they are prompted again
                     print("No card entered. Try again.")
-                    continue  # Skip sending any message to the server and allow to re-enter
+                    continue  # Keeps the while loop running for a new input
                 
-                client_socket.sendall(message.encode('utf-8'))
-                my_turn = False  # Reset the turn flag until confirmed by another message
-        except Exception as e:
-            print(f"Failed to send message: {e}")
-        time.sleep(0.1)  # Prevents the loop from executing too rapidly
+                my_turn = False  # Reset the flag; it will be set to True again if the server sends a turn message
+            except Exception as e:
+                print(f"Failed to send message: {e}")
+
+        time.sleep(0.1)  # Small delay to keep the loop from using too much CPU
 
 
 

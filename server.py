@@ -201,7 +201,10 @@ def handle_client(client_socket, client_address):
                 break  # If no message, assume the client disconnected
 
             message = received_data.decode('utf-8').strip()
-            if message.startswith('PLAY'): 
+            
+            if message.startswith('DRAW') and game.get_current_player() == username:
+                handle_draw_card(username)            
+            elif message.startswith('PLAY'): 
                 if is_valid_play(message):
                     # Here you can process the card play because it's a valid format
                     card_info = message.split()
@@ -225,6 +228,17 @@ def handle_client(client_socket, client_address):
 
         client_socket.close()
         print(f"Connection closed for {username or client_address}")
+
+def handle_draw_card(player_name):
+    # Determine the number of cards to draw, for example, if stacking is not allowed then it's just 1 card
+    num_cards_to_draw = 1  # According to official UNO rules, you can adjust the rules here
+    drawn_cards = game.draw_cards(player_name, num_cards_to_draw)
+
+    # Send the drawn card(s) back to the player
+    send_hand(clients[player_name], game.player_hands[player_name])
+
+    # Ensure the current player's turn continues, or advance to the next player according to your rules
+    send_to_client(clients[player_name], f"It's your turn to play.", 'text')
 
 
 # Function to accept new connections

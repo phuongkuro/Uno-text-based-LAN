@@ -11,6 +11,22 @@ class Game:
 
         return self.player_hands
     
+    def draw_cards(self, player_name, num_cards=1):
+        # Draw 'num_cards' cards from the deck and add them to the player's hand.
+        drawn_cards = []
+        for _ in range(num_cards):
+            if not self.deck.cards:  # If the deck is empty, typically you would reshuffle the discard pile except the top card
+                # Reinitialize the deck from discard pile
+                self.deck.cards = self.discard_pile[:-1]
+                self.discard_pile = [self.top_card]
+                self.deck.shuffle()
+            if self.deck.cards:
+                card = self.deck.cards.pop()
+                self.player_hands[player_name].append(card)
+                drawn_cards.append(card)
+        return drawn_cards
+
+
     # Modify or add a method to set the top card when the first player plays
     def set_top_card(self, card):
         self.top_card = card
