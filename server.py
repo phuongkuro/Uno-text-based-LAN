@@ -3,7 +3,8 @@ import threading
 import pickle
 from card import Deck
 from card import Game
-from card import Card 
+from card import Card
+
 # Dictionary to hold client info
 clients = {}
 
@@ -188,6 +189,7 @@ def handle_client(client_socket, client_address):
                 continue  # Wait for the user to enter another username
 
             clients[username] = client_socket
+            game.add_player(username)  # Add the new player to the Game
             print(f"Connection established with {username} from {client_address}")
             broadcast(f"{username} has joined the game.", 'text')
             send_to_client(client_socket, "Welcome to the game! When all players have joined, the host will start the game.", 'text')
@@ -221,24 +223,48 @@ def handle_client(client_socket, client_address):
     except Exception as e:
         print(f"An exception occurred with {username or client_address}: {e}")
     finally:
-        # Perform cleanup and inform other players
-        if username:
+        # Cleanup and inform other players if a client disconnects
+        if username and username in clients:
             clients.pop(username, None)
-            broadcast(f"{username} has left the game.",'text')
+            broadcast(f"{username} has left the game.", 'text')
+            # If a disconnect occurs during the game, handle any necessary game state adjustments here
 
+        if username in game.players:
+            game.players.remove(username)
+            # Also remove from players_drawn if using that to track who has drawn a card
+            if username in game.players_drawn:
+                del game.players_drawn[username]
+        
         client_socket.close()
         print(f"Connection closed for {username or client_address}")
 
+
 def handle_draw_card(player_name):
-    # Determine the number of cards to draw, for example, if stacking is not allowed then it's just 1 card
-    num_cards_to_draw = 1  # According to official UNO rules, you can adjust the rules here
-    drawn_cards = game.draw_cards(player_name, num_cards_to_draw)
+    # If it's the first turn and the current player is trying to draw, stop them
+    if game.top_card is None and game.get_current_player() == game.players[0]:
+        send_to_client(clients[player_name], "You shall not pass on the first turn!", 'text')
+        send_to_client(clients[player_name], f"It's your turn to play.", 'text')
+        return
 
-    # Send the drawn card(s) back to the player
-    send_hand(clients[player_name], game.player_hands[player_name])
+    # If the player has already drawn a card during their turn, skip them
+    if game.players_drawn[player_name]:
+        send_to_client(clients[player_name], "You have already drawn a card. Turn moves to next player.", 'text')
+        game.advance_to_next_player()
+        announce_turn()
+        return
 
-    # Ensure the current player's turn continues, or advance to the next player according to your rules
-    send_to_client(clients[player_name], f"It's your turn to play.", 'text')
+    # Draw a card and announce it to the player
+    drawn_card = game.draw_card(player_name)
+    send_to_client(clients[player_name], f"You drew: {drawn_card}", 'text')
+    send_hand(clients[player_name], game.player_hands[player_name])  # Send updated hand
+
+    # Allow the player to decide if they want to play if they have a playable card
+    if any(game.can_play_card(player_name, card) for card in game.player_hands[player_name]):
+        send_to_client(clients[player_name], f"It's your turn to play.", 'text')
+    else:
+        # Player doesn't have a playable card or chooses to pass after draw, move to the next player
+        game.advance_to_next_player()
+        announce_turn()
 
 
 # Function to accept new connections

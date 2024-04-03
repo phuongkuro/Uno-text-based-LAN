@@ -11,21 +11,16 @@ class Game:
 
         return self.player_hands
     
-    def draw_cards(self, player_name, num_cards=1):
-        # Draw 'num_cards' cards from the deck and add them to the player's hand.
-        drawn_cards = []
-        for _ in range(num_cards):
-            if not self.deck.cards:  # If the deck is empty, typically you would reshuffle the discard pile except the top card
-                # Reinitialize the deck from discard pile
-                self.deck.cards = self.discard_pile[:-1]
-                self.discard_pile = [self.top_card]
-                self.deck.shuffle()
-            if self.deck.cards:
-                card = self.deck.cards.pop()
-                self.player_hands[player_name].append(card)
-                drawn_cards.append(card)
-        return drawn_cards
-
+    def draw_card(self, player_name):
+        # Draw only 1 card from the deck and add it to the player's hand.
+        if not self.deck.cards:  # If the deck is empty, reshuffle the discard pile
+            self.reshuffle_discard_pile()
+        if self.deck.cards:
+            card = self.deck.cards.pop()
+            self.player_hands[player_name].append(card)
+            self.players_drawn[player_name] = True
+            return card  # Return the drawn card not as a list, but rather as a Card object
+        return None  # If no cards in the deck, return None
 
     # Modify or add a method to set the top card when the first player plays
     def set_top_card(self, card):
@@ -35,6 +30,7 @@ class Game:
         self.deck = deck  # Use the deck instance passed in as an argument
         self.discard_pile = []  # Initialize an empty discard pile        
         self.players = []  # Will keep track of player order
+        self.players_drawn = {}  # Initialize the empty dictionary for tracking draws
         self.top_card = None
         self.direction = 1  # 1 for clockwise, -1 for counter-clockwise
         self.current_index = 0
@@ -43,6 +39,7 @@ class Game:
 
     def add_player(self, player_name):
         self.players.append(player_name)
+        self.players_drawn[player_name] = False  # Initialize draw tracking to False
 
     def set_starting_top_card(self):
         # Make sure there's a card to draw
@@ -67,6 +64,9 @@ class Game:
         return self.players[self.current_index]
 
     def advance_to_next_player(self):
+        # Reset draw flag for the current player
+        self.players_drawn[self.get_current_player()] = False
+        # Move to the next player
         self.current_index = (self.current_index + self.direction) % len(self.players)
 
     def reverse_direction(self):
