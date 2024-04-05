@@ -24,22 +24,22 @@ def receive_messages(client_socket, username):
         try:
             header = client_socket.recv(4)
             if not header:
-                print("Server closed the connection unexpectedly.")
+                print("Server closed the connection unexpectedly.", flush=True)
                 break
             message_length = int.from_bytes(header, byteorder='big')
             
             if message_length:
                 message = client_socket.recv(message_length)
                 if not message:
-                    print("Server closed the connection.")
+                    print("Server closed the connection.", flush=True)
                     break
 
                 if message.startswith(b'PICKLE:'):
                     hand = pickle.loads(message[7:])
-                    print("Received your hand of cards:", hand)
+                    print("Received your hand of cards:", hand, flush=True)
                 elif message.startswith(b'TEXT:'):
                     text_message = message[5:].decode('utf-8')
-                    print(text_message)
+                    print(text_message, flush=True)
 
                     # Check if it's the user's turn or if they need to try again
                     if "your turn to play." in text_message or "Try again" in text_message:
@@ -48,7 +48,7 @@ def receive_messages(client_socket, username):
                         my_turn = False
 
         except Exception as e:
-            print("An error occurred:", e)
+            print("An error occurred:", e, flush=True)
             break
 
 
